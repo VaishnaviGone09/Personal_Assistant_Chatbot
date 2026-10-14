@@ -9,7 +9,7 @@ import com.personalassistant.backend.task.TaskResponse;
 /**
  * Reply from POST /api/chat.
  * "intent" tells the frontend what the assistant understood (e.g. LIST_TASKS, CREATE_TASK).
- * "source" is "rule-based" because this version uses the built-in Java fallback (no external AI).
+ * "source" identifies whether the reply came from Java logic, Gemini, or an unavailable AI service.
  */
 public record ChatResponse(
         String reply,
@@ -28,5 +28,9 @@ public record ChatResponse(
 
     public static ChatResponse text(String reply, String intent) {
         return of(reply, intent, null, null, null);
+    }
+
+    public static ChatResponse assistantText(String reply, String intent, String source) {
+        return new ChatResponse(reply, intent, source, List.of(), null, List.of(), LocalDateTime.now());
     }
 }

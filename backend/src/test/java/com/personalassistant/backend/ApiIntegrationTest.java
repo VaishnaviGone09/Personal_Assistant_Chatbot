@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personalassistant.backend.task.TaskRepository;
 
 /** End-to-end tests of the REST API. Today is frozen at Wednesday 2026-10-14 09:00 (see TestClockConfig). */
-@SpringBootTest
+@SpringBootTest(properties = "gemini.api-key=")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestClockConfig.class)
@@ -341,8 +341,12 @@ class ApiIntegrationTest {
                 .andExpect(jsonPath("$.intent").value("FREE_SLOTS"))
                 .andExpect(jsonPath("$.suggestedSlots[0].startTime").value("08:00"));
         chat("Give me my briefing").andExpect(jsonPath("$.intent").value("BRIEFING"));
-        chat("hello").andExpect(jsonPath("$.intent").value("HELP"));
-        chat("xyz").andExpect(jsonPath("$.intent").value("UNKNOWN"));
+        chat("hello")
+                .andExpect(jsonPath("$.intent").value("AI_UNAVAILABLE"))
+                .andExpect(jsonPath("$.source").value("unavailable"));
+        chat("xyz")
+                .andExpect(jsonPath("$.intent").value("AI_UNAVAILABLE"))
+                .andExpect(jsonPath("$.source").value("unavailable"));
 
         mockMvc.perform(post("/api/chat").contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"\"}"))
                 .andExpect(status().isBadRequest())

@@ -1,10 +1,12 @@
 # Personal Assistant Chatbot – Backend
 
 A Spring Boot 3.5 REST API for a personal assistant chatbot. It manages tasks, detects schedule conflicts,
-suggests free time slots, answers simple chat messages and builds a daily briefing.
+suggests free time slots, uses Google Gemini for general conversation and builds a daily briefing.
 Data is stored in a file-based H2 database, so your tasks are kept after a restart.
 
-No external AI key, Google account or email setup is needed. The chat uses a built-in rule-based Java parser.
+Task and schedule requests are handled by validated Java logic. Gemini only answers general conversation;
+it cannot create or change tasks. If no Gemini key is configured or the API is unavailable, the chat endpoint
+returns an explicit unavailable response instead of pretending the reply came from AI.
 
 ## Tech stack
 
@@ -64,9 +66,19 @@ Open **PowerShell** or **Command Prompt** and run these commands.
 
 4. Start the server:
 
-   ```powershell
-   mvn spring-boot:run
-   ```
+  Set your Google Gemini API key for this PowerShell window, then start the backend:
+
+  ```powershell
+  $secureKey = Read-Host "Enter your Gemini API key" -AsSecureString
+  $env:GEMINI_API_KEY = [System.Net.NetworkCredential]::new("", $secureKey).Password
+  mvn spring-boot:run
+  ```
+
+  Get a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey). Enter it only at the
+  secure PowerShell prompt. Do not put it in source files, README files, or Git. The environment variable
+  applies to this PowerShell window; set it again in a new window. The backend uses the stable
+  `gemini-3.8-flash` model by default. You can optionally select another supported model by setting
+  `$env:GEMINI_MODEL` before starting the server.
 
    Wait until you see `Started PersonalAssistantApplication`. The API is now at **http://localhost:8080**.
    Press `Ctrl + C` to stop it. If Windows asks `Terminate batch job (Y/N)?`, type `Y` and press Enter.
@@ -102,12 +114,20 @@ variables before starting the app:
 | `PORT`                     | `8080`                                           | HTTP port                                    |
 | `APP_CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173,...` | Browser origins allowed to call the API      |
 | `DB_URL`                   | `jdbc:h2:file:./data/personal-assistant-db`      | Database location                            |
+| `GEMINI_API_KEY`            | (not set)                                        | Google Gemini API key for conversational chat |
+| `GEMINI_MODEL`              | `gemini-3.8-flash`                               | Gemini model name                             |
 
 Example (PowerShell) – allow a frontend running on port 8000:
 
 ```powershell
 $env:APP_CORS_ALLOWED_ORIGINS = "http://localhost:8000"
 mvn spring-boot:run
+```
+
+To clear the Gemini key from the current PowerShell window after stopping the backend:
+
+```powershell
+$env:GEMINI_API_KEY = $null
 ```
 
 Example (Command Prompt):
