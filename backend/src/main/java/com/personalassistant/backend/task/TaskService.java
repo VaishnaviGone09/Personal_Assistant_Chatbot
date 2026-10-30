@@ -1,3 +1,4 @@
+
 package com.personalassistant.backend.task;
 
 import java.time.Clock;
@@ -25,12 +26,12 @@ public class TaskService {
         this.clock = clock;
     }
 
-    /** Lists tasks, optionally filtered by date, status and/or priority. */
     @Transactional(readOnly = true)
     public List<TaskResponse> getTasks(LocalDate date, TaskStatus status, TaskPriority priority) {
         List<Task> tasks = date != null
                 ? taskRepository.findByDateOrderByStartTimeAsc(date)
                 : taskRepository.findAllByOrderByDateAscStartTimeAsc();
+
         return tasks.stream()
                 .filter(task -> status == null || task.getStatus() == status)
                 .filter(task -> priority == null || task.getPriority() == priority)
@@ -53,10 +54,6 @@ public class TaskService {
         return TaskResponse.from(findTask(id));
     }
 
-    /**
-     * Creates a task. If it overlaps another task, a ScheduleConflictException (HTTP 409) is thrown
-     * unless {@code allowConflict} is true.
-     */
     @Transactional
     public TaskResponse createTask(TaskRequest request, boolean allowConflict) {
         Task task = new Task();
@@ -76,12 +73,15 @@ public class TaskService {
     @Transactional
     public TaskResponse updateStatus(Long id, TaskStatus newStatus) {
         Task task = findTask(id);
-        boolean reactivating = task.getStatus() == TaskStatus.CANCELLED && newStatus != TaskStatus.CANCELLED;
+        boolean reactivating = task.getStatus() == TaskStatus.CANCELLED
+                && newStatus != TaskStatus.CANCELLED;
+
         task.setStatus(newStatus);
+
         if (reactivating) {
-            // A cancelled task did not block time, so make sure it still fits before bringing it back.
             checkForConflicts(task, false);
         }
+
         return TaskResponse.from(taskRepository.save(task));
     }
 
@@ -92,11 +92,13 @@ public class TaskService {
 
     private Task findTask(Long id) {
         return taskRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Task with id " + id + " was not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Task with id " + id + " was not found"));
     }
 
     private void applyRequest(Task task, TaskRequest request) {
         ScheduleService.validateTimeRange(request.startTime(), request.endTime());
+
         task.setTitle(request.title().trim());
         task.setDescription(request.description() == null ? null : request.description().trim());
         task.setDate(request.date());
@@ -110,16 +112,22 @@ public class TaskService {
         if (allowConflict || !task.hasTimeRange() || task.getStatus() == TaskStatus.CANCELLED) {
             return;
         }
+
         List<TaskResponse> conflicts = scheduleService
-                .findConflicts(task.getDate(), task.getStartTime(), task.getEndTime(), task.getId()).stream()
+                .findConflicts(task.getDate(), task.getStartTime(), task.getEndTime(), task.getId())
+                .stream()
                 .map(TaskResponse::from)
                 .toList();
+
         if (conflicts.isEmpty()) {
             return;
         }
+
         int duration = ScheduleService.minutesBetween(task.getStartTime(), task.getEndTime());
-        List<TimeSlot> suggestions = scheduleService.suggestSlots(task.getDate(), duration, task.getStartTime(),
-                task.getId());
+
+        List<TimeSlot> suggestions = scheduleService.suggestSlots(
+                task.getDate(), duration, task.getStartTime(), task.getId());
+
         throw new ScheduleConflictException(
                 "This time overlaps " + conflicts.size() + " existing task(s). "
                         + "Pick a suggested slot or send allowConflict=true to save anyway.",

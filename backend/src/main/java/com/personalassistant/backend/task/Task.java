@@ -1,3 +1,4 @@
+
 package com.personalassistant.backend.task;
 
 import java.time.LocalDate;
@@ -25,6 +26,7 @@ public class Task {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "task_id")
     private Long id;
 
     @Column(nullable = false, length = 100)
@@ -69,13 +71,13 @@ public class Task {
         return startTime != null && endTime != null;
     }
 
-    public Long getId() {
-        return id;
-    }
+   public Long getId() {
+    return id;
+}
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+public void setId(Long id) {
+    this.id = id;
+}
 
     public String getTitle() {
         return title;
@@ -141,3 +143,4 @@ public class Task {
         return updatedAt;
     }
 }
+
